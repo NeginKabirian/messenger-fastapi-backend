@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Literal
 from pydantic import BaseModel, Field
-from User import User
+from models.User import User
 
 MessageType = Literal["text", "image", "voice"]
 
