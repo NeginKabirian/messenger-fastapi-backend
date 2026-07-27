@@ -3,18 +3,18 @@ from models.Message import Message
 import services.user_service
 import services.message_service
 from models.storage import Storage
-
+from pydantic import ValidationError
+import getpass
 
 def show_menu():
+    print("\n" + "=" * 30)
     print("Welcome To Messenger System!")
     print("1.sign_up")
     print("2.log_in")
     print("3.send message")
     print("4.show inbox")
     print("5.exit")
-    print("")
-    print("")
-    print("")
+    print("\n" + "=" * 30)
 
 
 def main_menu():
@@ -26,44 +26,51 @@ def main_menu():
             print("\n--- Sign Up ---")
             username = input("Username> ").strip()
             email = input("Email> ").strip()
-            password = input("Password> ").strip()
+            password = getpass.getpass("Password> ").strip()
+            confirm_password = getpass.getpass("Confirm Password> ").strip()
+    
+            if password != confirm_password:
+                print("Error: Passwords do not match!")
+                continue
+
             birth_date = input("<birth_date>(eg.2005-01-30)").strip()
             gender = input("Gender: Male | Female | Prefer not to say: ")
             Name = input("name> ").strip()
-            phone_number = input("Phone Number>(eg.+1-650-253-0000) ").strip()
-            new_user = User(
-                id=len(Storage.users) + 1,
-                username=username,
-                email=email,
-                hashed_password=password,
-                birth_date=birth_date,
-                gender=gender,
-                name=Name,
-                phone_number=phone_number,
-            )
-            success = services.user_service.sign_up(new_user)
-            if success:
-                print(f"Success: User '{username}' signed up successfully!")
-            else:
-                print("Error: Sign up failed! Username already exists.")
-            # log
+            phone = input("Phone Number>(eg.+1-650-253-0000) ").strip()
+            try:
+                new_user = User(
+                    id=len(Storage.users) + 1,
+                    username=username,
+                    email=email,
+                    hashed_password=password,
+                    birth_date=birth_date,
+                    gender=gender,
+                    name=Name,
+                    phone=phone,
+                )
+                success = services.user_service.sign_up(new_user)
+                if success:
+                    print(f"Success: User '{username}' signed up successfully!")
+                else:
+                    print("Error: Sign up failed! Username already exists.")
+                # log
+            except ValidationError as e:
+                print("\nError: Invalid Data!")
+                for error in e.errors():
+                    print(f"- {error['loc'][0]}: {error['msg']}")
         elif cmd == "2":
             print("\n--- Log In ---")
             username = input("Username> ").strip()
-            password = input("Password> ").strip()
+            password = getpass.getpass("Password> ").strip()
 
-            is_logged_in = services.user_service.login(username, password)
+            logged_in_user = services.user_service.login(username, password)
 
-            if is_logged_in:
-                print(f"Success: Welcome back, {username}!")
-                print("DEBUG: Users in Storage:", Storage.users)
-                for u in Storage.users:
-                    if u.username == username:
-                        current_user = u
-                        print("Find user")
-                        break
+            if logged_in_user:
+                current_user = logged_in_user
+                print(f"Success: Welcome back, {current_user.username}!")
             else:
                 print("Error: Invalid username or password!")
+
             # Todo cmd 3 and 4
         elif cmd == "3":
             print("\n--- Send Message ---")
@@ -71,15 +78,18 @@ def main_menu():
                 print("Error: You must log in first to send a message.")
                 continue
             receiver_username = input("Enter receiver username> ").strip()
+            receiver_user = None
             for u in Storage.users:
                 if u.username == receiver_username:
-                    user = u
+                    receiver_user = u
                     break
-            if user is None:
+            if receiver_user is None:
                 print("Error: Receiver user not found!")
                 continue
             content = input("Enter message content> ").strip()
-            new_message = Message(sender=current_user, receiver=[user], content=content)
+            new_message = Message(
+                sender=current_user, receiver=[receiver_user], content=content
+            )
             services.message_service.send_message(new_message)
             print("Success: Message sent successfully!")
         elif cmd == "4":
