@@ -5,6 +5,13 @@ import services.message_service
 from models.storage import Storage
 from pydantic import ValidationError
 import getpass
+from logger import setup_logging
+import logging
+
+
+setup_logging()
+logger = logging.getLogger(__name__)
+
 
 def show_menu():
     print("\n" + "=" * 30)
@@ -21,16 +28,17 @@ def main_menu():
     current_user = None
     while True:
         show_menu()
-        cmd = input("\nEnter Command Number> ").strip()
+        cmd = input("Enter Command Number> ").strip()
         if cmd == "1":
             print("\n--- Sign Up ---")
             username = input("Username> ").strip()
             email = input("Email> ").strip()
             password = getpass.getpass("Password> ").strip()
             confirm_password = getpass.getpass("Confirm Password> ").strip()
-    
+
             if password != confirm_password:
-                print("Error: Passwords do not match!")
+                # print("Error: Passwords do not match!")
+                logger.error("Passwords do not match!")
                 continue
 
             birth_date = input("<birth_date>(eg.2005-01-30)").strip()
@@ -50,14 +58,18 @@ def main_menu():
                 )
                 success = services.user_service.sign_up(new_user)
                 if success:
-                    print(f"Success: User '{username}' signed up successfully!")
+                    # print(f"Success: User '{username}' signed up successfully!")
+                    logger.info(f"Success: User '{username}' signed up successfully!")
                 else:
-                    print("Error: Sign up failed! Username already exists.")
+                    # print("Error: Sign up failed! Username already exists.")
+                    logger.error("Error: Sign up failed! Username already exists.")
                 # log
             except ValidationError as e:
-                print("\nError: Invalid Data!")
+                # print("\nError: Invalid Data!")
+                logger.error("Invalid Data!")
                 for error in e.errors():
-                    print(f"- {error['loc'][0]}: {error['msg']}")
+                    # print(f"- {error['loc'][0]}: {error['msg']}")
+                    logger.error(f"- {error['loc'][0]}: {error['msg']}")
         elif cmd == "2":
             print("\n--- Log In ---")
             username = input("Username> ").strip()
@@ -67,15 +79,18 @@ def main_menu():
 
             if logged_in_user:
                 current_user = logged_in_user
-                print(f"Success: Welcome back, {current_user.username}!")
+                # print(f"Success: Welcome back, {current_user.username}!")
+                logger.info(f"Success: Welcome back, {current_user.username}!")
             else:
-                print("Error: Invalid username or password!")
+                # print("Error: Invalid username or password!")
+                logger.error("Invalid username or password!")
 
             # Todo cmd 3 and 4
         elif cmd == "3":
             print("\n--- Send Message ---")
             if current_user is None:
-                print("Error: You must log in first to send a message.")
+                # print("You must log in first to send a message.")
+                logger.error("You must log in first to send a message.")
                 continue
             receiver_username = input("Enter receiver username> ").strip()
             receiver_user = None
@@ -84,18 +99,21 @@ def main_menu():
                     receiver_user = u
                     break
             if receiver_user is None:
-                print("Error: Receiver user not found!")
+                # print("Error: Receiver user not found!")
+                logger.error("Receiver user not found!")
                 continue
             content = input("Enter message content> ").strip()
             new_message = Message(
                 sender=current_user, receiver=[receiver_user], content=content
             )
             services.message_service.send_message(new_message)
-            print("Success: Message sent successfully!")
+            # print("Success: Message sent successfully!")
+            logger.info("Success: Message sent successfully!")
         elif cmd == "4":
             print("\n--- Inbox ---")
             if current_user is None:
-                print("Error: You must log in first to view your inbox.")
+                # print("Error: You must log in first to view your inbox.")
+                logger.error("You must log in first to view your inbox.")
                 continue
             user_messages = services.message_service.get_messages(current_user)
             if not user_messages:
@@ -110,7 +128,8 @@ def main_menu():
             print("Goodbye!")
             break
         else:
-            print("Error: Invalid command. Please enter a number between 1 and 5.")
+            # print("Error: Invalid command. Please enter a number between 1 and 5.")
+            logger.error("Invalid command. Please enter a number between 1 and 5.")
 
 
 if __name__ == "__main__":
