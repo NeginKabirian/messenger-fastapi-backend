@@ -1,6 +1,6 @@
 import logging
 import sys
-from config import settings
+from messenger.core.config import settings
 
 
 def setup_logging():

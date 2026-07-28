@@ -1,6 +1,6 @@
-from models.User import User
-from models.storage import Storage
 import logging
+from messenger.models.User import User
+from messenger.models.storage import Storage
 
 logger = logging.getLogger(__name__)
 

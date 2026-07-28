@@ -1,6 +1,6 @@
 from typing import List
-from models.User import User
-from models.Message import Message
+from .User import User
+from .Message import Message
 
 
 class Storage:

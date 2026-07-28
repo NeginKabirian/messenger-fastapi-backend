@@ -45,7 +45,7 @@ wheels = [
 [[package]]
 name = "messenger-project"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "phonenumbers" },
     { name = "pydantic", extra = ["email"] },

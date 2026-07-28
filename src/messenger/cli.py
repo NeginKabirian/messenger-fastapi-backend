@@ -1,11 +1,11 @@
-from models.User import User
-from models.Message import Message
-import services.user_service
-import services.message_service
-from models.storage import Storage
+from messenger.models.User import User
+from messenger.models.Message import Message
+import messenger.services.user_service
+import messenger.services.message_service
+from messenger.models.storage import Storage
 from pydantic import ValidationError
 import getpass
-from logger import setup_logging
+from messenger.core.logger import setup_logging
 import logging
 
 
@@ -56,7 +56,7 @@ def main_menu():
                     name=Name,
                     phone=phone,
                 )
-                success = services.user_service.sign_up(new_user)
+                success = messenger.services.user_service.sign_up(new_user)
                 if success:
                     # print(f"Success: User '{username}' signed up successfully!")
                     logger.info(f"Success: User '{username}' signed up successfully!")
@@ -75,7 +75,7 @@ def main_menu():
             username = input("Username> ").strip()
             password = getpass.getpass("Password> ").strip()
 
-            logged_in_user = services.user_service.login(username, password)
+            logged_in_user = messenger.services.user_service.login(username, password)
 
             if logged_in_user:
                 current_user = logged_in_user
@@ -106,7 +106,7 @@ def main_menu():
             new_message = Message(
                 sender=current_user, receiver=[receiver_user], content=content
             )
-            services.message_service.send_message(new_message)
+            messenger.services.message_service.send_message(new_message)
             # print("Success: Message sent successfully!")
             logger.info("Success: Message sent successfully!")
         elif cmd == "4":
@@ -115,7 +115,9 @@ def main_menu():
                 # print("Error: You must log in first to view your inbox.")
                 logger.error("You must log in first to view your inbox.")
                 continue
-            user_messages = services.message_service.get_messages(current_user)
+            user_messages = messenger.services.message_service.get_messages(
+                current_user
+            )
             if not user_messages:
                 print("Your inbox is empty.")
             else:

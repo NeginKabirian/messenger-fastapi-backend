@@ -1,14 +1,14 @@
 from datetime import datetime
 from typing import List, Literal
 from pydantic import BaseModel, Field
-from models.User import User
+from .User import User
 
 MessageType = Literal["text", "image", "voice"]
 
 
 class Message(BaseModel):
     sender: User
-    receiver: List[User] | User
+    receiver: List[User]
     message_type: MessageType = "text"
     content: str
     created_at: datetime = Field(default_factory=datetime.now)
