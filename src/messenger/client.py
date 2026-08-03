@@ -125,6 +125,8 @@ def main_menu():
                 else:
                     for msg in resp["data"]:
                         print(msg)
+            else:
+                logger.error(f"Error: {resp['message']}")
         elif cmd == "5":
             print("Goodbye!")
             break
