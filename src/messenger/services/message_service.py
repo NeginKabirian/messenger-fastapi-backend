@@ -14,12 +14,11 @@ def send_message(message: Message):
     logger.info(f"New message sent by '{message.sender.username}'.")
 
 
-def get_messages(user: User) -> List[Message]:
-    messages = [
+def get_messages(user: User) -> list[Message]:
+    logger.info(f"'{user.username}' viewed their inbox.")
+    return [
         msg
         for msg in Storage.messages
-        if msg.sender.id == user.id or any(r.id == user.id for r in msg.receiver)
+        if msg.sender.username == user.username
+        or any(r.username == user.username for r in msg.receiver)
     ]
-    # log
-    logger.info(f"'{user.username}' viewed their inbox.")
-    return messages
