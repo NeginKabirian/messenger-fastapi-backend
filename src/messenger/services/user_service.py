@@ -3,6 +3,7 @@ from messenger.models.User import User
 from messenger.models.storage import Storage
 from passlib.context import CryptContext
 from messenger.schemas.user_schema import UserDto
+import messenger.core.security as security
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 logger = logging.getLogger(__name__)
@@ -36,9 +37,11 @@ def login(username: str, password: str) -> User | None:
     logger.debug(f"Attempting to log in user: {username}")
 
     for user in Storage.users:
+        logger.debug(f"verify_password for user {user.username}{username}")
         if user.username == username:
             # hash function will be add later
-            if verify_password(password, user.hash_password):
+            logger.debug(f"verify_password for user {user.username}")
+            if security.verify_password(password, user.hashed_password):
                 user.is_logged_in = True
                 logger.info(f"User '{user.username}' successfully logged in.")
                 return user
@@ -65,7 +68,3 @@ def update_user(username: str, user: UserDto):
         return True
     logger.debug(f"user: {username} does not exist.")
     return False
-
-
-def verify_password(plain_password: str, hashed_password_from_db: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password_from_db)
