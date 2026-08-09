@@ -49,7 +49,7 @@ def login(username: str, password: str) -> User | None:
     return None
 
 
-def update_user(username: str, user: UserDto):
+def update_user(username: str, user: UserDto)-> bool:
     logger.debug(f"Attempting to update user: {username}")
     hashed_password = pwd_context.hash(user.password)
     user = User(
@@ -68,3 +68,18 @@ def update_user(username: str, user: UserDto):
         return True
     logger.debug(f"user: {username} does not exist.")
     return False
+def get_users()-> list:
+    logger.info(f"Get users.")
+    return Storage.users
+
+def delete_user(username:str)->bool:
+    logger.debug(f"Attempting to delete user: {username}")
+    for index,u in enumerate(Storage.users):
+        if u.username == username:
+            Storage.users.pop(index)
+            logger.info(f"user: {username} deleted.")
+            return True
+    logger.debug(f"user: {username} does not exist.")
+    return False
+        
+   
