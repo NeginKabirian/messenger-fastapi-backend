@@ -10,7 +10,7 @@ from passlib.context import CryptContext
 setup_logging()
 logger = logging.getLogger(__name__)
 app = FastAPI(title="Messenger API")
-pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+
 
 @app.get("/", status_code=200)
 def Welcome():
@@ -20,22 +20,25 @@ def Welcome():
 
 @app.post("/user", status_code=201)
 def add_user(new_user: UserDto):
-    hashed_password = pwd_context.hash(new_user.password)
-    user = User(
-        username=new_user.username,
-        email=new_user.email,
-        hashed_password=hashed_password,
-        phone=new_user.phone,
-        name=new_user.name,
-        bio=new_user.bio,
-        birth_date=new_user.birth_date
-    )
-    status = user_service.sign_up(new_user=user)
+    status = user_service.sign_up(user=new_user)
     if status:
-        logger.info(f"User {user.username} created via API.")
+        logger.info(f"User {new_user.username} created via API.")
         return {
             "status": "success",
-            "message": f"user{user.username} add succussfully.",
+            "message": f"user {new_user.username} add succussfully.",
         }
-    logger.error(f"Failed to create user{user.username}.")
+    logger.error(f"Failed to create user{new_user.username}.")
     raise HTTPException(status_code=400)
+
+
+@app.put("/user/{username}", status_code=201)
+def update_user(username, new_user: UserDto):
+    status = user_service.update_user(username=username, user=new_user)
+    if status:
+        logger.info(f"User {new_user.username} updated via API.")
+        return {
+            "status": "success",
+            "message": f"user {new_user.username} updated succussfully.",
+        }
+    logger.error(f"Failed to update user{new_user.username}.user does not exist")
+    raise HTTPException(status_code=400, detail="user does not exist")
