@@ -79,3 +79,16 @@ def delete(username: str):
             "message": f"user {username} deleted succussfully.",
         }
     raise HTTPException(status_code=404, detail="username not found!")
+
+
+@app.post("/user/{username}")
+def logout(username: str):
+    status = user_service.logout_user(username=username)
+    if status:
+        return {
+            "status": "success",
+            "message": f"user {username} logged out succussfully.",
+        }
+    raise HTTPException(
+        status_code=404, detail="username not found or is already logged out!"
+    )
