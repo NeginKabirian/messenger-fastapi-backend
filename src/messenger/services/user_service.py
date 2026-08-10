@@ -24,7 +24,7 @@ def sign_up(user: UserDto) -> bool:
         name=user.name,
         bio=user.bio,
         birth_date=user.birth_date,
-        gender=user.gender
+        gender=user.gender,
     )
     Storage.users.append(new_user)
     logger.info(f"User '{new_user.username}' successfully signed up.")
@@ -60,7 +60,7 @@ def update_user(username: str, user: UserDto) -> bool:
                 name=user.name,
                 bio=user.bio,
                 birth_date=user.birth_date,
-                gender=user.gender
+                gender=user.gender,
             )
             Storage.users[index] = updated_user
             logger.info(f"user: {username} updated.")
@@ -81,5 +81,20 @@ def delete_user(username: str) -> bool:
             Storage.users.pop(index)
             logger.info(f"user: {username} deleted.")
             return True
+    logger.debug(f"user: {username} does not exist.")
+    return False
+
+
+def logout_user(username: str) -> bool:
+    logger.debug(f"Attempting to logout user: {username}")
+    for index, u in enumerate(Storage.users):
+        if u.username == username:
+            if Storage.users[index].is_logged_in is True:
+                Storage.users[index].is_logged_in = False
+                logger.info(f"user: {username} logged out.")
+                return True
+            else:
+                logger.info(f"user: {username} is already logged out.")
+                return False
     logger.debug(f"user: {username} does not exist.")
     return False
