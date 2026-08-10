@@ -62,20 +62,20 @@ def log_in(model: LoginRequest):
         raise HTTPException(
             status_code=404, detail="password or username was not correct"
         )
+
+
 @app.get("/users")
 def get_users():
     logger.info("Get users via API.")
     return user_service.get_users()
+
 
 @app.delete("/user/{username}")
 def delete(username: str):
     status = user_service.delete_user(username=username)
     if status:
         return {
-                "status": "success",
-                "message": f"user {username} deleted succussfully.",
-            }
-    raise HTTPException(
-            status_code=404, detail="username not found!"
-        )
- 
+            "status": "success",
+            "message": f"user {username} deleted succussfully.",
+        }
+    raise HTTPException(status_code=404, detail="username not found!")
