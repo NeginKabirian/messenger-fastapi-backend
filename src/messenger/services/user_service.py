@@ -98,3 +98,12 @@ def logout_user(username: str) -> bool:
                 return False
     logger.debug(f"user: {username} does not exist.")
     return False
+
+
+def get_user(username: str) -> User | None:
+    logger.debug(f"Attempting to get user: {username}")
+    for u in Storage.users:
+        if u.username == username:
+            logger.info(f"user: {username} get.")
+            return u
+    return None
