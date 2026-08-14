@@ -16,6 +16,31 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 
+def setup_demo_data():
+    demo_usernames = ["negar", "negin", "aylin", "helen"]
+
+    for uname in demo_usernames:
+        demo_user = User(
+            username=uname,
+            email=f"{uname}@demo.com",
+            hashed_password="1234",
+            birth_date="2000-01-01",
+            gender="Female",
+            name=uname.capitalize(),
+            phone="+98-912-000-0000",
+        )
+
+        user_service.sign_up(demo_user)
+        for u in Storage.users:
+            if u.username == uname:
+                u.is_logged_in = True
+                break
+
+    logger.info(
+        "*** 4 Demo Users (negar, negin, aylin, helen) Created & Logged In! ***"
+    )
+
+
 async def sign_up(info, writer: asyncio.StreamWriter):
     user = User(**info)  # convert dictionary(**kwargs) to user object with pydantic
     check = user_service.sign_up(user)
@@ -178,4 +203,5 @@ async def server_process():
 
 
 if __name__ == "__main__":
+    setup_demo_data()
     asyncio.run(server_process())

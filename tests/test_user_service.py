@@ -39,7 +39,7 @@ def test_sign_up_duplicate_username():
     assert len(Storage.users) == 1
 
 
-def sign_up_wrong_information_birthday_user():
+def test_sign_up_wrong_information_birthday_user():
 
     with pytest.raises(ValidationError):
         User(
@@ -51,7 +51,7 @@ def sign_up_wrong_information_birthday_user():
         )
 
 
-def sign_up_wrong_information_gmail_user():
+def test_sign_up_wrong_information_gmail_user():
     with pytest.raises(ValidationError):
         User(
             username="Neginka0",
@@ -62,7 +62,7 @@ def sign_up_wrong_information_gmail_user():
         )
 
 
-def sign_up_wrong_gender_user():
+def test_sign_up_wrong_gender_user():
     with pytest.raises(ValidationError):
         User(
             username="Neginka0",
