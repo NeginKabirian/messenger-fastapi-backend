@@ -202,6 +202,10 @@ async def server_process():
         await server.serve_forever()
 
 
-if __name__ == "__main__":
+def main():
     setup_demo_data()
     asyncio.run(server_process())
+
+
+if __name__ == "__main__":
+    main()
