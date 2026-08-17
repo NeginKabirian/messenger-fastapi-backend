@@ -1,16 +1,32 @@
 from datetime import datetime
-from typing import List, Literal
-from pydantic import BaseModel, Field
+from sqlalchemy import String, DateTime, ForeignKey
+from sqlalchemy.orm import relationship, Mapped, mapped_column
+from messenger.core.database import Base
+from uuid import uuid4
+from typing import List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .User import User
+    from .MessageRecipient import MessageRecipient
 
 
-MessageType = Literal["text", "image", "voice"]
+class Message(Base):
+    __tablename__ = "messages"
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: uuid4().hex, index=True
+    )
+    sender_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    message_type: Mapped[str] = mapped_column(String, nullable=False, default="text")
+    content: Mapped[str] = mapped_column(String, nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.now, nullable=False
+    )
 
-
-class Message(BaseModel):
-    sender: str
-    receiver: List[str]
-    message_type: MessageType = "text"
-    content: str
-    created_at: datetime = Field(default_factory=datetime.now)
-    delivery_time: datetime | None = None
-    is_read: bool = False
+    sender: Mapped["User"] = relationship(
+        "User", foreign_keys=[sender_id], back_populates="messages_sent"
+    )
+    recipients: Mapped[List["MessageRecipient"]] = relationship(
+        "MessageRecipient", back_populates="message", cascade="all, delete-orphan"
+    )

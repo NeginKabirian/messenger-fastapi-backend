@@ -1,24 +1,37 @@
-from datetime import datetime
-from typing import Literal, Optional
-from pydantic import BaseModel, EmailStr, Field
-from pydantic_extra_types.phone_numbers import PhoneNumber
+from datetime import datetime, date
+from sqlalchemy import String, Boolean, DateTime, Date
+from sqlalchemy.orm import relationship, Mapped, mapped_column
+from messenger.core.database import Base
 from uuid import uuid4
+from typing import List, Optional
 
 
-GenderType = Literal["Male", "Female", "Prefer not to say"]
+class User(Base):
+    __tablename__ = "users"
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: uuid4().hex, index=True
+    )
+    username: Mapped[str] = mapped_column(
+        String, unique=True, index=True, nullable=False
+    )
+    email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String, nullable=False)
+    birth_date: Mapped[date] = mapped_column(Date, nullable=False)
+    phone: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    bio: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    gender: Mapped[str] = mapped_column(
+        String, default="Prefer not to say", nullable=False
+    )
+    name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
-
-class User(BaseModel):
-    id: str = Field(default_factory=lambda: uuid4().hex)
-    username: str = Field(min_length=3, max_length=20)
-    email: EmailStr
-    hashed_password: str
-    birth_date: datetime
-    phone: PhoneNumber | None = None
-    name: Optional[str] = None
-    bio: Optional[str] = Field(default=None, max_length=200)
-    last_seen: datetime | None = None
-
-    is_logged_in: bool = False
-    signup_ts: datetime = Field(default_factory=datetime.now)
-    gender: GenderType = "Prefer not to say"
+    last_seen: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    is_logged_in: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    signup_ts: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.now, nullable=False
+    )
+    messages_sent: Mapped[list["Message"]] = relationship(
+        "Message", foreign_keys="Message.sender_id", back_populates="sender"
+    )
+    received_messages: Mapped[List["MessageRecipient"]] = relationship(
+        "MessageRecipient", back_populates="receiver"
+    )
