@@ -18,3 +18,5 @@ app.log
 
 # Ruff cache
 .ruff_cache/
+# Testing and Linting Caches
+.pytest_cache/

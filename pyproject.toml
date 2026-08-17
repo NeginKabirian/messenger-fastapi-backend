@@ -13,6 +13,7 @@ dependencies = [
     "uvicorn>=0.52.1",
     "asyncpg>=0.31.0",
     "sqlalchemy>=2.0.52",
+    "alembic>=1.19.1",
 ]
 
 [dependency-groups]
