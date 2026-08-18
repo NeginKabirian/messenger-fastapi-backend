@@ -3,7 +3,11 @@ from sqlalchemy import String, Boolean, DateTime, Date
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from messenger.core.database import Base
 from uuid import uuid4
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .Message import Message
+    from .MessageRecipient import MessageRecipient
 
 
 class User(Base):
@@ -30,8 +34,11 @@ class User(Base):
         DateTime, default=datetime.now, nullable=False
     )
     messages_sent: Mapped[list["Message"]] = relationship(
-        "Message", foreign_keys="Message.sender_id", back_populates="sender"
+        "Message",
+        foreign_keys="Message.sender_id",
+        back_populates="sender",
+        cascade="all, delete-orphan",
     )
     received_messages: Mapped[List["MessageRecipient"]] = relationship(
-        "MessageRecipient", back_populates="receiver"
+        "MessageRecipient", back_populates="receiver", cascade="all, delete-orphan"
     )

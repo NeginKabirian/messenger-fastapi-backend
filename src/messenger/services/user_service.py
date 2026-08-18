@@ -1,20 +1,25 @@
 import logging
 from messenger.models.User import User
-from messenger.models.storage import Storage
 from passlib.context import CryptContext
 from messenger.schemas.user_schema import UserDto
 import messenger.core.security as security
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 logger = logging.getLogger(__name__)
 
 
-def sign_up(user: UserDto) -> bool:
+async def sign_up(user: UserDto, db: AsyncSession) -> bool:
     logger.debug(f"Attempting to sign up user: {user.username}")
-    for u in Storage.users:
-        if u.username == user.username:
-            logger.error(f"Sign up failed. Username '{user.username}' already exists.")
-            return False
+    stmt = select(User).where(User.username == user.username)
+    result = await db.execute(stmt)
+    exist = result.scalars().first()
+    if exist:
+        logger.error(f"Sign up failed. Username '{user.username}' already exists.")
+        return False
+
     hashed_password = pwd_context.hash(user.password)
     new_user = User(
         username=user.username,
@@ -26,84 +31,93 @@ def sign_up(user: UserDto) -> bool:
         birth_date=user.birth_date,
         gender=user.gender,
     )
-    Storage.users.append(new_user)
+    db.add(new_user)
+    await db.commit()
     logger.info(f"User '{new_user.username}' successfully signed up.")
     return True
 
 
-def login(username: str, password: str) -> User | None:
+async def login(username: str, password: str, db: AsyncSession) -> User | None:
     logger.debug(f"Attempting to log in user: {username}")
-
-    for user in Storage.users:
-        logger.debug(f"verify_password for user {user.username}{username}")
-        if user.username == username:
-            # hash function will be add later
-            logger.debug(f"verify_password for user {user.username}")
-            if security.verify_password(password, user.hashed_password):
-                user.is_logged_in = True
-                logger.info(f"User '{user.username}' successfully logged in.")
-                return user
-
+    stmt = select(User).where(User.username == username)
+    result = await db.execute(stmt)
+    user = result.scalars().first()
+    if user:
+        logger.debug(f"verify_password for user {user.username}")
+        if security.verify_password(password, user.hashed_password):
+            user.is_logged_in = True
+            await db.commit()
+            logger.info(f"User '{user.username}' successfully logged in.")
+            return user
     return None
 
 
-def update_user(username: str, user: UserDto) -> bool:
+async def update_user(username: str, user_dto: UserDto, db: AsyncSession) -> bool:
     logger.debug(f"Attempting to update user: {username}")
-    for index, u in enumerate(Storage.users):
-        if u.username == user.username:
-            hashed_password = pwd_context.hash(user.password)
-            updated_user = User(
-                username=user.username,
-                email=user.email,
-                hashed_password=hashed_password,
-                phone=user.phone,
-                name=user.name,
-                bio=user.bio,
-                birth_date=user.birth_date,
-                gender=user.gender,
-            )
-            Storage.users[index] = updated_user
-            logger.info(f"user: {username} updated.")
-            return True
+    stmt = select(User).where(User.username == username)
+    result = await db.execute(stmt)
+    user = result.scalars().first()
+    if user:
+        user.hashed_password = pwd_context.hash(user_dto.password)
+        user.username = user_dto.username
+        user.email = user_dto.email
+        user.phone = user_dto.phone
+        user.name = user_dto.name
+        user.bio = user_dto.bio
+        user.birth_date = user_dto.birth_date
+        user.gender = user_dto.gender
+        await db.commit()
+        logger.info(f"user: {username} updated.")
+        return True
     logger.debug(f"user: {username} does not exist.")
     return False
 
 
-def get_users() -> list:
+async def get_users(db: AsyncSession) -> list:
     logger.info(f"Get users.")
-    return Storage.users
+    stmt = select(User)
+    result = await db.execute(stmt)
+    return list(result.scalars().all())
 
 
-def delete_user(username: str) -> bool:
+async def delete_user(username: str, db: AsyncSession) -> bool:
     logger.debug(f"Attempting to delete user: {username}")
-    for index, u in enumerate(Storage.users):
-        if u.username == username:
-            Storage.users.pop(index)
-            logger.info(f"user: {username} deleted.")
-            return True
+    stmt = select(User).where(User.username == username)
+    result = await db.execute(stmt)
+    user = result.scalars().first()
+    if user:
+        await db.delete(user)
+        await db.commit()
+        logger.info(f"user: {username} deleted.")
+        return True
     logger.debug(f"user: {username} does not exist.")
     return False
 
 
-def logout_user(username: str) -> bool:
+async def logout_user(username: str, db: AsyncSession) -> bool:
     logger.debug(f"Attempting to logout user: {username}")
-    for index, u in enumerate(Storage.users):
-        if u.username == username:
-            if Storage.users[index].is_logged_in is True:
-                Storage.users[index].is_logged_in = False
-                logger.info(f"user: {username} logged out.")
-                return True
-            else:
-                logger.info(f"user: {username} is already logged out.")
-                return False
+    stmt = select(User).where(User.username == username)
+    result = await db.execute(stmt)
+    user = result.scalars().first()
+    if user:
+        if user.is_logged_in is True:
+            user.is_logged_in = False
+            await db.commit()
+            logger.info(f"user: {username} logged out.")
+            return True
+        else:
+            logger.info(f"user: {username} is already logged out.")
+            return False
     logger.debug(f"user: {username} does not exist.")
     return False
 
 
-def get_user(username: str) -> User | None:
+async def get_user(username: str, db: AsyncSession) -> User | None:
     logger.debug(f"Attempting to get user: {username}")
-    for u in Storage.users:
-        if u.username == username:
-            logger.info(f"user: {username} get.")
-            return u
+    stmt = select(User).where(User.username == username)
+    result = await db.execute(stmt)
+    user = result.scalars().first()
+    if user:
+        logger.info(f"user: {username} get.")
+        return user
     return None

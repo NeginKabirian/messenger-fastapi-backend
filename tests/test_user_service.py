@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 from messenger.models.User import User
-from messenger.models.storage import Storage
+from messenger.models.MessageRecipient import Storage
 import messenger.services.user_service as user_service
 
 

@@ -1,8 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 import logging
 from messenger.schemas.user_schema import UserDto
 from messenger.schemas.login_shema import LoginRequest
 import messenger.services.user_service as user_service
+from messenger.core.database import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -10,8 +12,8 @@ user_router = APIRouter(prefix="/users", tags=["Users"])
 
 
 @user_router.post("", status_code=201)
-def add_user(new_user: UserDto):
-    status = user_service.sign_up(user=new_user)
+async def add_user(new_user: UserDto, db: AsyncSession = Depends(get_db)):
+    status = await user_service.sign_up(user=new_user, db=db)
     if status:
         logger.info(f"User {new_user.username} created via API.")
         return {
@@ -25,8 +27,8 @@ def add_user(new_user: UserDto):
 
 
 @user_router.put("/{username}", status_code=201)
-def update_user(username, new_user: UserDto):
-    status = user_service.update_user(username=username, user=new_user)
+async def update_user(username, new_user: UserDto, db: AsyncSession = Depends(get_db)):
+    status = await user_service.update_user(username=username, user_dto=new_user, db=db)
     if status:
         logger.info(f"User {new_user.username} updated via API.")
         return {
@@ -38,8 +40,10 @@ def update_user(username, new_user: UserDto):
 
 
 @user_router.post("/login")
-def log_in(model: LoginRequest):
-    user = user_service.login(username=model.username, password=model.password)
+async def log_in(model: LoginRequest, db: AsyncSession = Depends(get_db)):
+    user = await user_service.login(
+        username=model.username, password=model.password, db=db
+    )
     if user is not None:
         if user.is_logged_in:
             logger.info(f"User {user.username} logged in via API.")
@@ -55,8 +59,8 @@ def log_in(model: LoginRequest):
 
 
 @user_router.post("/{username}/logout")
-def logout(username: str):
-    status = user_service.logout_user(username=username)
+async def logout(username: str, db: AsyncSession = Depends(get_db)):
+    status = await user_service.logout_user(username=username, db=db)
     if status:
         return {
             "status": "success",
@@ -68,15 +72,15 @@ def logout(username: str):
 
 
 @user_router.get("")
-def get_users():
+async def get_users(db: AsyncSession = Depends(get_db)):
     logger.info("Get users via API.")
-    return user_service.get_users()
+    return await user_service.get_users(db=db)
 
 
 @user_router.get("/{username}")
-def get_user(username: str):
+async def get_user(username: str, db: AsyncSession = Depends(get_db)):
     logger.info("Get users via API.")
-    user = user_service.get_user(username=username)
+    user = await user_service.get_user(username=username, db=db)
     if user is None:
         raise HTTPException(
             status_code=404, detail="username not found or is already logged out!"
@@ -86,8 +90,8 @@ def get_user(username: str):
 
 
 @user_router.delete("/{username}")
-def delete(username: str):
-    status = user_service.delete_user(username=username)
+async def delete(username: str, db: AsyncSession = Depends(get_db)):
+    status = await user_service.delete_user(username=username, db=db)
     if status:
         return {
             "status": "success",

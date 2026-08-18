@@ -1,6 +1,6 @@
 import pytest
 from messenger.models.User import User
-from messenger.models.storage import Storage
+from messenger.models.MessageRecipient import Storage
 from messenger.models.Message import Message
 import messenger.services.message_service as message_service
 
