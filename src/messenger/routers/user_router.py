@@ -40,7 +40,7 @@ async def update_user(username, new_user: UserDto, db: AsyncSession = Depends(ge
 
 
 @user_router.post("/login")
-async def log_in(model: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login(model: LoginRequest, db: AsyncSession = Depends(get_db)):
     user = await user_service.login(
         username=model.username, password=model.password, db=db
     )

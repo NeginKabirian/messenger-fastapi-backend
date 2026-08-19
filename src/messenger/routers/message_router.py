@@ -4,6 +4,8 @@ import messenger.services.message_service as message_service
 from messenger.schemas.send_message_shema import send_message_Dto
 from sqlalchemy.ext.asyncio import AsyncSession
 from messenger.core.database import get_db
+from messenger.schemas.EditMessageDto import EditMessageDto
+
 
 logger = logging.getLogger(__name__)
 message_router = APIRouter(prefix="/messages", tags=["Messages"])
@@ -24,9 +26,31 @@ async def send_message(message: send_message_Dto, db: AsyncSession = Depends(get
         status_code=401, detail=f"user {message.sender_username} must be logged in!"
     )
 
+
+@message_router.put("/{message_id}", status_code=200)
+async def edit_message(
+    message_id: str,
+    data: EditMessageDto,
+    username: str,
+    db: AsyncSession = Depends(get_db),
+):
+    success, msg = await message_service.update_message(
+        message_id, data.content, username, db
+    )
+    if not success:
+        if msg == "unauthorized":
+            raise HTTPException(status_code=401, detail=msg)
+        elif msg == "message_not_found":
+            raise HTTPException(status_code=404, detail=msg)
+        elif msg == "forbidden":
+            raise HTTPException(status_code=403, detail=msg)
+
+    return {"status": "success", "message": "Succussfuly edit."}
+
+
 @message_router.get("/{username}/inbox", status_code=200)
 async def get_inbox(username: str, db: AsyncSession = Depends(get_db)):
-    status, error_type, messages = await message_service.get_messages(
+    status, error_type, messages = await message_service.get_inbox(
         username=username, db=db
     )
     if status:
@@ -56,3 +80,29 @@ async def get_inbox(username: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     elif error_type == "unauthorized":
         raise HTTPException(status_code=401, detail="User must be logged in")
+
+
+@message_router.get("")
+async def get_messages(db: AsyncSession = Depends(get_db)):
+    logger.info("Get messages via API.")
+    return await message_service.get_messages(db=db)
+
+
+@message_router.delete("/{message_id}", status_code=200)
+async def delete_message(
+    message_id: str,
+    username: str,
+    db: AsyncSession = Depends(get_db),
+):
+    success, msg = await message_service.delete_message(
+        message_id, username, db
+    )
+    if not success:
+        if msg == "unauthorized":
+            raise HTTPException(status_code=401, detail=msg)
+        elif msg == "message_not_found":
+            raise HTTPException(status_code=404, detail=msg)
+        elif msg == "forbidden":
+            raise HTTPException(status_code=403, detail=msg)
+
+    return {"status": "success", "message": "Succussfuly delet."}

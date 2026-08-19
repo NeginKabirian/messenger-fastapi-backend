@@ -42,9 +42,36 @@ async def send_message(messageDto: send_message_Dto, db: AsyncSession) -> bool:
     return True
 
 
-async def get_messages(
-    username: str, db: AsyncSession
-) -> tuple[bool, str, List[Message]]:
+async def update_message(
+    message_id: str, new_content: str, username: str, db: AsyncSession
+) -> tuple[bool, str]:
+    user = await get_user(username=username, db=db)
+    if user is None:
+        error = "not_found"
+        logger.info(f"'{username}' does not exist.")
+        return False, error
+    if user.is_logged_in is False:
+        error = "unauthorized"
+        logger.info(f"'{username}' must be logged in.")
+        return False, error
+    stmt = select(Message).where(Message.id == message_id)
+    result = await db.execute(stmt)
+    message = result.scalar_one_or_none()
+    if not message:
+        return False, "message_not_found"
+
+    if message.sender_id != user.id:
+        logger.warning(f"User {username} tried to edit a message they don't own.")
+        return False, "forbidden"
+
+    message.content = new_content
+
+    await db.commit()
+    logger.info(f"Message {message_id} was edited by {username}.")
+    return True, "success"
+
+
+async def get_inbox(username: str, db: AsyncSession) -> tuple[bool, str, List[Message]]:
     user = await get_user(username=username, db=db)
     if user is None:
         error = "not_found"
@@ -91,3 +118,38 @@ async def get_messages(
     error = "unauthorized"
     logger.info(f"'{username}' must be logged in.")
     return False, error, []
+
+
+async def get_messages(db: AsyncSession) -> list:
+    logger.info(f"Get messages.")
+    stmt = select(Message)
+    result = await db.execute(stmt)
+    return list(result.scalars().all())
+async def delete_message(message_id: str,username: str, db: AsyncSession) -> tuple[bool, str]:
+    logger.debug(f"Attempting to delete message")
+    user = await get_user(username=username, db=db)
+    if user is None:
+        error = "not_found"
+        logger.info(f"'{username}' does not exist.")
+        return False, error
+    if user.is_logged_in is False:
+        error = "unauthorized"
+        logger.info(f"'{username}' must be logged in.")
+        return False, error
+    stmt = select(Message).where(Message.id == message_id)
+    result = await db.execute(stmt)
+    message = result.scalars().first()
+    
+    if not message:
+        return False, "message_not_found"
+    if message.sender_id != user.id:
+                logger.warning(f"User {username} tried to edit a message they don't own.")
+                return False, "forbidden"
+
+    await db.delete(message)
+    await db.commit()
+    logger.info(f"Message deleted by {username} .")
+    return True , "success"
+    
+
+ 
