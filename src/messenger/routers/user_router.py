@@ -1,11 +1,13 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, status
 import logging
 from messenger.schemas.user_schema import UserDto
 from messenger.schemas.login_shema import LoginRequest
 import messenger.services.user_service as user_service
 from messenger.core.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from messenger.core.security import verify_password, create_access_token
+from fastapi.security import OAuth2PasswordRequestForm
+import messenger.models.User as User
 logger = logging.getLogger(__name__)
 
 user_router = APIRouter(prefix="/users", tags=["Users"])
@@ -26,9 +28,9 @@ async def add_user(new_user: UserDto, db: AsyncSession = Depends(get_db)):
     )
 
 
-@user_router.put("/{username}", status_code=201)
-async def update_user(username, new_user: UserDto, db: AsyncSession = Depends(get_db)):
-    status = await user_service.update_user(username=username, user_dto=new_user, db=db)
+@user_router.put("/me", status_code=201)
+async def update_user(new_user: UserDto, db: AsyncSession = Depends(get_db),current_user: User = Depends(user_service.get_current_user)):
+    status = await user_service.update_user(user=current_user.username, user_dto=new_user, db=db)
     if status:
         logger.info(f"User {new_user.username} updated via API.")
         return {
@@ -39,8 +41,8 @@ async def update_user(username, new_user: UserDto, db: AsyncSession = Depends(ge
     raise HTTPException(status_code=400, detail="user does not exist")
 
 
-@user_router.post("/login")
-async def login(model: LoginRequest, db: AsyncSession = Depends(get_db)):
+@user_router.post("/log_in")
+async def log_in(model: LoginRequest, db: AsyncSession = Depends(get_db)):
     user = await user_service.login(
         username=model.username, password=model.password, db=db
     )
@@ -56,6 +58,21 @@ async def login(model: LoginRequest, db: AsyncSession = Depends(get_db)):
         raise HTTPException(
             status_code=404, detail="password or username was not correct"
         )
+
+
+@user_router.post("/login")
+async def login(
+    data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)
+):
+    user = await user_service.get_user(data.username, db)
+    if not user or not verify_password(data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=400, detail="password or username was not correct"
+        )
+    user.is_logged_in = True
+    await db.commit()
+    access_token = create_access_token(data={"sub": user.username})
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @user_router.post("/{username}/logout")
@@ -89,12 +106,12 @@ async def get_user(username: str, db: AsyncSession = Depends(get_db)):
         return {"status": "success", "data": user}
 
 
-@user_router.delete("/{username}")
-async def delete(username: str, db: AsyncSession = Depends(get_db)):
-    status = await user_service.delete_user(username=username, db=db)
+@user_router.delete("/me")
+async def delete(current_user: User = Depends(user_service.get_current_user), db: AsyncSession = Depends(get_db)):
+    status = await user_service.delete_user(user=current_user, db=db)
     if status:
         return {
             "status": "success",
-            "message": f"user {username} deleted successfully.",
+            "message": f"user {current_user.username} deleted successfully.",
         }
     raise HTTPException(status_code=404, detail="username not found!")
