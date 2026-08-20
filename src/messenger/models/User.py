@@ -27,9 +27,11 @@ class User(Base):
         String, default="Prefer not to say", nullable=False
     )
     name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-
     last_seen: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     is_logged_in: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_admin: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, server_default="false"
+    )
     signup_ts: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.now, nullable=False
     )

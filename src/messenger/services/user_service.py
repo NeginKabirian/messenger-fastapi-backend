@@ -68,6 +68,15 @@ async def sign_up(user: UserDto, db: AsyncSession) -> bool:
     return True
 
 
+async def get_admin_user(current_user: User = Depends(get_current_user)):
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: You do not have administrator privileges!",
+        )
+    return current_user
+
+
 async def login(username: str, password: str, db: AsyncSession) -> User | None:
     logger.debug(f"Attempting to log in user: {username}")
     stmt = select(User).where(User.username == username)
@@ -111,35 +120,35 @@ async def get_users(db: AsyncSession) -> list:
     return list(result.scalars().all())
 
 
-async def delete_user(user: User, db: AsyncSession) -> bool:
-    logger.debug(f"Attempting to delete user: {user.username}")
-    stmt = select(User).where(User.username == user.username)
+async def delete_user(username: str, db: AsyncSession) -> bool:
+    logger.debug(f"Attempting to delete user: {username}")
+    stmt = select(User).where(User.username == username)
     result = await db.execute(stmt)
     user = result.scalars().first()
     if user:
         await db.delete(user)
         await db.commit()
-        logger.info(f"Messege:{user.username} deleted by .")
+        logger.info(f"Messege:{username} deleted by .")
         return True
-    logger.debug(f"user: {user.username} does not exist.")
+    logger.debug(f"user: {username} does not exist.")
     return False
 
 
-async def logout_user(username: str, db: AsyncSession) -> bool:
-    logger.debug(f"Attempting to logout user: {username}")
-    stmt = select(User).where(User.username == username)
+async def logout_user(user: User, db: AsyncSession) -> bool:
+    logger.debug(f"Attempting to logout user: {user.username}")
+    stmt = select(User).where(User.username == user.username)
     result = await db.execute(stmt)
     user = result.scalars().first()
     if user:
         if user.is_logged_in is True:
             user.is_logged_in = False
             await db.commit()
-            logger.info(f"user: {username} logged out.")
+            logger.info(f"user: {user.username} logged out.")
             return True
         else:
-            logger.info(f"user: {username} is already logged out.")
+            logger.info(f"user: {user.username} is already logged out.")
             return False
-    logger.debug(f"user: {username} does not exist.")
+    logger.debug(f"user: {user.username} does not exist.")
     return False
 
 

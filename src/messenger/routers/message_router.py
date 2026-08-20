@@ -93,7 +93,10 @@ async def get_inbox(
 
 
 @message_router.get("")
-async def get_messages(db: AsyncSession = Depends(get_db)):
+async def get_messages(
+    db: AsyncSession = Depends(get_db),
+    admin_user: User = Depends(user_service.get_admin_user),
+):
     logger.info("Get messages via API.")
     return await message_service.get_messages(db=db)
 

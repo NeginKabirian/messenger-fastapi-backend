@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from messenger.core.security import verify_password, create_access_token
 from fastapi.security import OAuth2PasswordRequestForm
 import messenger.models.User as User
+
 logger = logging.getLogger(__name__)
 
 user_router = APIRouter(prefix="/users", tags=["Users"])
@@ -28,9 +29,15 @@ async def add_user(new_user: UserDto, db: AsyncSession = Depends(get_db)):
     )
 
 
-@user_router.put("/me", status_code=201)
-async def update_user(new_user: UserDto, db: AsyncSession = Depends(get_db),current_user: User = Depends(user_service.get_current_user)):
-    status = await user_service.update_user(user=current_user.username, user_dto=new_user, db=db)
+@user_router.put("", status_code=201)
+async def update_user(
+    new_user: UserDto,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(user_service.get_current_user),
+):
+    status = await user_service.update_user(
+        user=current_user.username, user_dto=new_user, db=db
+    )
     if status:
         logger.info(f"User {new_user.username} updated via API.")
         return {
@@ -75,13 +82,16 @@ async def login(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@user_router.post("/{username}/logout")
-async def logout(username: str, db: AsyncSession = Depends(get_db)):
-    status = await user_service.logout_user(username=username, db=db)
+@user_router.post("/logout")
+async def logout(
+    user: User = Depends(user_service.get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    status = await user_service.logout_user(user=user, db=db)
     if status:
         return {
             "status": "success",
-            "message": f"user {username} logged out succussfully.",
+            "message": f"user {user.username} logged out succussfully.",
         }
     raise HTTPException(
         status_code=404, detail="username not found or is already logged out!"
@@ -89,13 +99,20 @@ async def logout(username: str, db: AsyncSession = Depends(get_db)):
 
 
 @user_router.get("")
-async def get_users(db: AsyncSession = Depends(get_db)):
+async def get_users(
+    admin_user: User = Depends(user_service.get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
     logger.info("Get users via API.")
     return await user_service.get_users(db=db)
 
 
 @user_router.get("/{username}")
-async def get_user(username: str, db: AsyncSession = Depends(get_db)):
+async def get_user(
+    username: str,
+    admin_user: User = Depends(user_service.get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
     logger.info("Get users via API.")
     user = await user_service.get_user(username=username, db=db)
     if user is None:
@@ -106,12 +123,16 @@ async def get_user(username: str, db: AsyncSession = Depends(get_db)):
         return {"status": "success", "data": user}
 
 
-@user_router.delete("/me")
-async def delete(current_user: User = Depends(user_service.get_current_user), db: AsyncSession = Depends(get_db)):
-    status = await user_service.delete_user(user=current_user, db=db)
+@user_router.delete("")
+async def delete(
+    username: str,
+    admin_user: User = Depends(user_service.get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    status = await user_service.delete_user(username=username, db=db)
     if status:
         return {
             "status": "success",
-            "message": f"user {current_user.username} deleted successfully.",
+            "message": f"user {username} deleted successfully.",
         }
     raise HTTPException(status_code=404, detail="username not found!")
