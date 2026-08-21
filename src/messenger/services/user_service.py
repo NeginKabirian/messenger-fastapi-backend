@@ -161,3 +161,14 @@ async def get_user(username: str, db: AsyncSession) -> User | None:
         logger.info(f"user: {username} get.")
         return user
     return None
+
+
+async def get_user_id(id: str, db: AsyncSession) -> User | None:
+    logger.debug(f"Attempting to get user: {id}")
+    stmt = select(User).where(User.id == id)
+    result = await db.execute(stmt)
+    user = result.scalars().first()
+    if user:
+        logger.info(f"user: {id} get.")
+        return user
+    return None
