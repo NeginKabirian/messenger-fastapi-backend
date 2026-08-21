@@ -8,6 +8,7 @@ from typing import List, Optional, TYPE_CHECKING
 if TYPE_CHECKING:
     from .Message import Message
     from .MessageRecipient import MessageRecipient
+    from .GroupMember import GroupMember
 
 
 class User(Base):
@@ -29,9 +30,7 @@ class User(Base):
     name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     last_seen: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     is_logged_in: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    is_admin: Mapped[bool] = mapped_column(
-        Boolean, default=False, nullable=False, server_default="false"
-    )
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     signup_ts: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.now, nullable=False
     )
@@ -43,4 +42,7 @@ class User(Base):
     )
     received_messages: Mapped[List["MessageRecipient"]] = relationship(
         "MessageRecipient", back_populates="receiver", cascade="all, delete-orphan"
+    )
+    group_memberships: Mapped[List["GroupMember"]] = relationship(
+        "GroupMember", back_populates="user", cascade="all, delete-orphan"
     )
