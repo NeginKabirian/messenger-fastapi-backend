@@ -18,9 +18,7 @@ from typing import List
 logger = logging.getLogger(__name__)
 
 
-async def create_group(
-    dto: CreateGroupDto, current_user: User, db: AsyncSession
-) -> Group:
+async def create_group(dto: CreateGroupDto, current_user: User, db: AsyncSession) -> Group:
     logger.debug(f"Attempting to create group by user: {current_user.username}")
     group = Group(owner_id=current_user.id, name=dto.name, description=dto.description)
     owner_member = GroupMember(user_id=current_user.id, is_admin=True)
@@ -40,9 +38,7 @@ async def add_member(
     logger.debug(
         f"Attempting to add members to group {group_id} by user: {current_user.username}"
     )
-    stmt = (
-        select(Group).options(selectinload(Group.members)).where(group_id == Group.id)
-    )
+    stmt = select(Group).options(selectinload(Group.members)).where(group_id == Group.id)
     result = await db.execute(stmt)
     group = result.scalars().first()
     if group is None:
@@ -84,9 +80,7 @@ async def delete_member(
     logger.debug(
         f"Attempting to delete members to group {group_id} by admin: {admin_user.username}"
     )
-    stmt = (
-        select(Group).options(selectinload(Group.members)).where(Group.id == group_id)
-    )
+    stmt = select(Group).options(selectinload(Group.members)).where(Group.id == group_id)
     result = await db.execute(stmt)
     group = result.scalars().first()
     if group is None:
@@ -126,9 +120,7 @@ async def send_group_message(
     logger.debug(
         f"Attempting to send message to group {group_id} by user: {current_user.username}"
     )
-    stmt = (
-        select(Group).options(selectinload(Group.members)).where(group_id == Group.id)
-    )
+    stmt = select(Group).options(selectinload(Group.members)).where(group_id == Group.id)
     result = await db.execute(stmt)
     group = result.scalars().first()
     if group is None:
@@ -185,12 +177,8 @@ async def get_group_message(
 async def delete_group(
     group_id: str, current_user: User, db: AsyncSession
 ) -> tuple[bool, str]:
-    logger.debug(
-        f"Attempting to delete group {group_id} by user: {current_user.username}"
-    )
-    stmt = (
-        select(Group).options(selectinload(Group.members)).where(Group.id == group_id)
-    )
+    logger.debug(f"Attempting to delete group {group_id} by user: {current_user.username}")
+    stmt = select(Group).options(selectinload(Group.members)).where(Group.id == group_id)
     result = await db.execute(stmt)
     group = result.scalars().first()
     if group is None:
@@ -247,10 +235,7 @@ async def remove_message(
     if message_record is None:
         return False, "message_not_found"
 
-    if (
-        message_record.sender_id != current_user.id
-        and not current_member_record.is_admin
-    ):
+    if message_record.sender_id != current_user.id and not current_member_record.is_admin:
         logger.warning(
             f"User {current_user.username} tried to delete someone else's message!"
         )

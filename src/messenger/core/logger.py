@@ -4,9 +4,7 @@ from messenger.core.config import settings
 
 
 def setup_logging():
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     root_logger = logging.getLogger()
     root_logger.setLevel(settings.LOG_LEVEL)

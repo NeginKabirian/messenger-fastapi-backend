@@ -50,9 +50,7 @@ async def update_user(
 
 @user_router.post("/log_in")
 async def log_in(model: LoginRequest, db: AsyncSession = Depends(get_db)):
-    user = await user_service.login(
-        username=model.username, password=model.password, db=db
-    )
+    user = await user_service.login(username=model.username, password=model.password, db=db)
     if user is not None:
         if user.is_logged_in:
             logger.info(f"User {user.username} logged in via API.")
@@ -62,9 +60,7 @@ async def log_in(model: LoginRequest, db: AsyncSession = Depends(get_db)):
             }
     else:
         logger.error(f"Failed to log in user {model.username}")
-        raise HTTPException(
-            status_code=404, detail="password or username was not correct"
-        )
+        raise HTTPException(status_code=404, detail="password or username was not correct")
 
 
 @user_router.post("/login")
@@ -73,9 +69,7 @@ async def login(
 ):
     user = await user_service.get_user(data.username, db)
     if not user or not verify_password(data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=400, detail="password or username was not correct"
-        )
+        raise HTTPException(status_code=400, detail="password or username was not correct")
     user.is_logged_in = True
     await db.commit()
     access_token = create_access_token(data={"sub": user.username})

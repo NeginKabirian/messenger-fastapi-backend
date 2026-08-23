@@ -79,9 +79,7 @@ async def get_inbox(user: User, db: AsyncSession) -> tuple[bool, str, List[Messa
             select(Message)
             .options(
                 selectinload(Message.sender),
-                selectinload(Message.recipients).selectinload(
-                    MessageRecipient.receiver
-                ),
+                selectinload(Message.recipients).selectinload(MessageRecipient.receiver),
             )
             .where(Message.id.in_(messages_id))
         )
@@ -92,9 +90,7 @@ async def get_inbox(user: User, db: AsyncSession) -> tuple[bool, str, List[Messa
             select(Message)
             .options(
                 selectinload(Message.sender),
-                selectinload(Message.recipients).selectinload(
-                    MessageRecipient.receiver
-                ),
+                selectinload(Message.recipients).selectinload(MessageRecipient.receiver),
             )
             .where(Message.sender_id == user.id)
         )
@@ -116,9 +112,7 @@ async def get_messages(db: AsyncSession) -> list:
     return list(result.scalars().all())
 
 
-async def delete_message(
-    message_id: str, user: User, db: AsyncSession
-) -> tuple[bool, str]:
+async def delete_message(message_id: str, user: User, db: AsyncSession) -> tuple[bool, str]:
     logger.debug(f"Attempting to delete message")
     if user.is_logged_in is False:
         error = "unauthorized"

@@ -16,17 +16,13 @@ class User(Base):
     id: Mapped[str] = mapped_column(
         String, primary_key=True, default=lambda: uuid4().hex, index=True
     )
-    username: Mapped[str] = mapped_column(
-        String, unique=True, index=True, nullable=False
-    )
+    username: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String, nullable=False)
     birth_date: Mapped[date] = mapped_column(Date, nullable=False)
     phone: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     bio: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    gender: Mapped[str] = mapped_column(
-        String, default="Prefer not to say", nullable=False
-    )
+    gender: Mapped[str] = mapped_column(String, default="Prefer not to say", nullable=False)
     name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     last_seen: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     is_logged_in: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

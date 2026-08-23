@@ -47,9 +47,7 @@ async def add_members_to_group(
     if message == "group_not_found":
         raise HTTPException(status_code=404, detail="Group not found.")
     elif message == "forbidden":
-        raise HTTPException(
-            status_code=403, detail="Only group admins can add members."
-        )
+        raise HTTPException(status_code=403, detail="Only group admins can add members.")
     else:
         raise HTTPException(
             status_code=400,
@@ -73,9 +71,7 @@ async def send_message(
     if message == "group_not_found":
         raise HTTPException(status_code=404, detail="Group not found.")
     elif message == "forbidden":
-        raise HTTPException(
-            status_code=403, detail="Only the members can send message."
-        )
+        raise HTTPException(status_code=403, detail="Only the members can send message.")
 
 
 @router.get("/{group_id}/messages", status_code=200)
@@ -105,18 +101,14 @@ async def view_group_messages(
             if msg.sender.username == current_user.username:
                 resps.append(f"You: {msg.content} | Time: {time_str}")
             else:
-                resps.append(
-                    f"{msg.sender.username} | {msg.content} | Time: {time_str}"
-                )
+                resps.append(f"{msg.sender.username} | {msg.content} | Time: {time_str}")
 
         return {"status": "success", "data": resps}
 
     if detail == "group_not_found":
         raise HTTPException(status_code=404, detail=f"Group {group_id} not found.")
     elif detail == "forbidden":
-        raise HTTPException(
-            status_code=403, detail="Only the members can view message."
-        )
+        raise HTTPException(status_code=403, detail="Only the members can view message.")
 
 
 @router.delete("/{group_id}", status_code=200)
@@ -165,9 +157,7 @@ async def delete_member_from_group(
     if detail == "group_not_found":
         raise HTTPException(status_code=404, detail="Group not found.")
     elif detail == "forbidden":
-        raise HTTPException(
-            status_code=403, detail="Only group admins can delete members."
-        )
+        raise HTTPException(status_code=403, detail="Only group admins can delete members.")
     else:
         raise HTTPException(
             status_code=400,
@@ -192,9 +182,7 @@ async def delete_group_message(
     elif detail == "message_not_found":
         raise HTTPException(status_code=404, detail="Message not found in this group.")
     elif detail == "not_a_member":
-        raise HTTPException(
-            status_code=403, detail="You are not a member of this group."
-        )
+        raise HTTPException(status_code=403, detail="You are not a member of this group.")
     elif detail == "forbidden":
         raise HTTPException(
             status_code=403,

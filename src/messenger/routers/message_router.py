@@ -60,9 +60,7 @@ async def get_inbox(
     current_user: User = Depends(user_service.get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    status, error_type, messages = await message_service.get_inbox(
-        user=current_user, db=db
-    )
+    status, error_type, messages = await message_service.get_inbox(user=current_user, db=db)
     if status:
         logger.info(f"'{current_user.username}' viewed their inbox via API.")
         if not messages:
@@ -73,9 +71,7 @@ async def get_inbox(
             time_str = msg.created_at.strftime("%H:%M")
 
             if msg.sender.username == current_user.username:
-                receivers_names = ", ".join(
-                    [r.receiver.username for r in msg.recipients]
-                )
+                receivers_names = ", ".join([r.receiver.username for r in msg.recipients])
                 resps.append(
                     f"To: [{receivers_names}] | Text: {msg.content} | Time: {time_str}"
                 )
