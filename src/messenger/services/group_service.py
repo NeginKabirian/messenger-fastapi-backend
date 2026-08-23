@@ -218,3 +218,48 @@ async def get_all_groups(admin_user: User, db: AsyncSession):
     result = await db.execute(stmt)
     logger.debug(f"Attempting to get all groups by admin: {admin_user.username}")
     return list(result.scalars().all())
+
+
+async def remove_message(
+    group_id: str, message_id: str, current_user: User, db: AsyncSession
+) -> tuple[bool, str]:
+    stmt = (
+        select(Group)
+        .options(selectinload(Group.messages), selectinload(Group.members))
+        .where(Group.id == group_id)
+    )
+    result = await db.execute(stmt)
+    group = result.scalars().first()
+    if group is None:
+        return False, "group_not_found"
+    current_member_record = next(
+        (m for m in group.members if m.user_id == current_user.id), None
+    )
+
+    if current_member_record is None:
+        logger.warning(
+            f"User {current_user.username} tried to remove message without membership!"
+        )
+        return False, "not_a_member"
+
+    message_record = next((m for m in group.messages if m.id == message_id), None)
+
+    if message_record is None:
+        return False, "message_not_found"
+
+    if (
+        message_record.sender_id != current_user.id
+        and not current_member_record.is_admin
+    ):
+        logger.warning(
+            f"User {current_user.username} tried to delete someone else's message!"
+        )
+        return False, "forbidden"
+
+    group.messages.remove(message_record)
+    await db.commit()
+
+    logger.info(
+        f"Message {message_id} was successfully deleted from group {group.name} by {current_user.username}."
+    )
+    return True, "success"

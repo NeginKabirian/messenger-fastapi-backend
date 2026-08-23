@@ -173,3 +173,30 @@ async def delete_member_from_group(
             status_code=400,
             detail="No user to delete",
         )
+
+
+@router.delete("/{group_id}/messages/{message_id}")
+async def delete_group_message(
+    group_id: str,
+    message_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    status, detail = await group_service.remove_message(
+        group_id=group_id, message_id=message_id, current_user=current_user, db=db
+    )
+    if status:
+        return {"status": "success", "message": "Message deleted successfully."}
+    if detail == "group_not_found":
+        raise HTTPException(status_code=404, detail="Group not found.")
+    elif detail == "message_not_found":
+        raise HTTPException(status_code=404, detail="Message not found in this group.")
+    elif detail == "not_a_member":
+        raise HTTPException(
+            status_code=403, detail="You are not a member of this group."
+        )
+    elif detail == "forbidden":
+        raise HTTPException(
+            status_code=403,
+            detail="You can only delete your own messages unless you are an admin.",
+        )
