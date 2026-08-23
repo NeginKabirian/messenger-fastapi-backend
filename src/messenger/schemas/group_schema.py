@@ -9,3 +9,7 @@ class CreateGroupDto(BaseModel):
 
 class AddMemberDto(BaseModel):
     users_ids: List[str]
+
+
+class sendGroupMessageDto(BaseModel):
+    content: str

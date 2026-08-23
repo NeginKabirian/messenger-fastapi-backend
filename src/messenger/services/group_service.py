@@ -3,10 +3,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from messenger.models.Group import Group
 from messenger.models.GroupMember import GroupMember
 from messenger.models.User import User
-from messenger.schemas.group_schema import CreateGroupDto, AddMemberDto
+from messenger.models.Message import Message
+from messenger.schemas.group_schema import (
+    CreateGroupDto,
+    AddMemberDto,
+    sendGroupMessageDto,
+)
 from sqlalchemy import select
 from messenger.services.user_service import get_user_id
 from sqlalchemy.orm import selectinload
+from datetime import datetime
+from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +46,7 @@ async def add_member(
     result = await db.execute(stmt)
     group = result.scalars().first()
     if group is None:
-        msg = "Not Found"
-        return False, msg
+        return False, "group_not_found"
     current_member_record = next(
         (m for m in group.members if m.user_id == current_user.id), None
     )
@@ -70,3 +76,145 @@ async def add_member(
         return True, "success"
     else:
         return False, "no_users_added"
+
+
+async def delete_member(
+    group_id: str, dto: AddMemberDto, admin_user: User, db: AsyncSession
+) -> tuple[bool, str]:
+    logger.debug(
+        f"Attempting to delete members to group {group_id} by admin: {admin_user.username}"
+    )
+    stmt = (
+        select(Group).options(selectinload(Group.members)).where(Group.id == group_id)
+    )
+    result = await db.execute(stmt)
+    group = result.scalars().first()
+    if group is None:
+        return False, "group_not_found"
+    current_member_record = next(
+        (m for m in group.members if m.user_id == admin_user.id), None
+    )
+    if current_member_record is None or not current_member_record.is_admin:
+        logger.warning(
+            f"User {admin_user.username} tried to delete members without admin rights!"
+        )
+        return False, "forbidden"
+    existing_user = [m.user_id for m in group.members]
+    count = 0
+    for u_id in dto.users_ids:
+        if u_id in existing_user:
+            # performance check
+            stmt = select(GroupMember).where(
+                group_id == GroupMember.group_id, u_id == GroupMember.user_id
+            )
+            result = await db.execute(stmt)
+            group_member = result.scalars().first()
+            await db.delete(group_member)
+            count += 1
+
+    if count > 0:
+        await db.commit()
+        logger.info(f"{count} members deleted from group {group.name}.")
+        return True, "success"
+    else:
+        return False, "no_users_to_delete"
+
+
+async def send_group_message(
+    group_id: str, dto: sendGroupMessageDto, current_user: User, db: AsyncSession
+) -> tuple[bool, str]:
+    logger.debug(
+        f"Attempting to send message to group {group_id} by user: {current_user.username}"
+    )
+    stmt = (
+        select(Group).options(selectinload(Group.members)).where(group_id == Group.id)
+    )
+    result = await db.execute(stmt)
+    group = result.scalars().first()
+    if group is None:
+        msg = "group_not_found"
+        return False, msg
+    current_member_record = next(
+        (m for m in group.members if m.user_id == current_user.id), None
+    )
+    if current_member_record is None:
+        logger.warning(
+            f"User {current_user.username} tried to send mesage without membership!"
+        )
+        return False, "forbidden"
+
+    current_user.last_seen = datetime.now()
+    message = Message(sender_id=current_user.id, group_id=group_id, content=dto.content)
+    db.add(message)
+    await db.commit()
+    return True, "success"
+
+
+async def get_group_message(
+    group_id: str, current_user: User, db: AsyncSession
+) -> tuple[bool, str, List[Message]]:
+    logger.debug(
+        f"Attempting to view group {group_id} messages by user: {current_user.username}"
+    )
+    stmt = (
+        select(Group)
+        .options(
+            selectinload(Group.messages).selectinload(Message.sender),
+            selectinload(Group.members),
+        )
+        .where(group_id == Group.id)
+    )
+    result = await db.execute(stmt)
+    group = result.scalars().first()
+    if group is None:
+        return False, "group_not_found", []
+    current_member_record = next(
+        (m for m in group.members if m.user_id == current_user.id), None
+    )
+    if current_member_record is None:
+        logger.warning(
+            f"User {current_user.username} tried to view mesage without membership!"
+        )
+        return False, "forbidden", []
+    current_user.last_seen = datetime.now()
+    await db.commit()
+    group.messages.sort(key=lambda x: x.created_at, reverse=True)
+    return True, "success", group.messages
+
+
+async def delete_group(
+    group_id: str, current_user: User, db: AsyncSession
+) -> tuple[bool, str]:
+    logger.debug(
+        f"Attempting to delete group {group_id} by user: {current_user.username}"
+    )
+    stmt = (
+        select(Group).options(selectinload(Group.members)).where(Group.id == group_id)
+    )
+    result = await db.execute(stmt)
+    group = result.scalars().first()
+    if group is None:
+        return False, "group_not_found"
+    current_member_record = next(
+        (m for m in group.members if m.user_id == current_user.id), None
+    )
+    if current_member_record is None:
+        logger.warning(
+            f"User {current_user.username} tried to delete group without membership!"
+        )
+        return False, "forbidden"
+    if not current_member_record.is_admin:
+        logger.warning(
+            f"User {current_user.username} tried to delete group {group_id} without admin rights!"
+        )
+        return False, "forbidden"
+    await db.delete(group)
+    await db.commit()
+    return True, "success"
+
+
+async def get_all_groups(admin_user: User, db: AsyncSession):
+    stmt = select(Group)
+    result = await db.execute(stmt)
+    logger.debug(f"Attempting to get all groups by admin: {admin_user.username}")
+    return list(result.scalars().all())
