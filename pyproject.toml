@@ -35,3 +35,4 @@ packages = ["src/messenger"]
 
 [project.scripts]
 messenger = "messenger.cli:main_menu"
+messenger-api = "messenger.main:start_api"             

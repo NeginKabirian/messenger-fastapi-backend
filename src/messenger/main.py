@@ -20,3 +20,13 @@ app.include_router(router)
 def Welcome():
 
     return {"status": "success", "message": "Welcome to Messenger System"}
+
+
+def start_api():
+    import uvicorn
+
+    uvicorn.run("messenger.main:app", host="127.0.0.1", port=8000, reload=True)
+
+
+if __name__ == "__main__":
+    start_api()
