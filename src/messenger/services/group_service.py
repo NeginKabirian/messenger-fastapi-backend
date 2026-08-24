@@ -248,3 +248,45 @@ async def remove_message(
         f"Message {message_id} was successfully deleted from group {group.name} by {current_user.username}."
     )
     return True, "success"
+
+
+async def leave_group(
+    group_id: str, current_user: User, db: AsyncSession
+) -> tuple[bool, str]:
+    logger.debug(
+        f"user: {current_user.username} Attempting to leave the group : {group_id}"
+    )
+    stmt = select(Group).options(selectinload(Group.members)).where(Group.id == group_id)
+    result = await db.execute(stmt)
+    group = result.scalars().first()
+    if group is None:
+        return False, "group_not_found"
+    current_member_record = next(
+        (m for m in group.members if m.user_id == current_user.id), None
+    )
+
+    if current_member_record is None:
+        logger.warning(f"User {current_user.username} tried to leave without membership!")
+        return False, "not_a_member"
+    if group.owner_id == current_user.id:
+        new_owner = next(
+            (m for m in group.members if m.is_admin and m.user_id != current_user.id), None
+        )
+        if new_owner is None:
+            new_owner = next(
+                (m for m in group.members if m.user_id != current_user.id), None
+            )
+        if new_owner is not None:
+            group.owner_id = new_owner.user_id
+            new_owner.is_admin = True
+            logger.info(f"Ownership transferred to {new_owner.user_id}.")
+        else:
+            await db.delete(group)
+            await db.commit()
+            logger.info(f"Group {group.name} deleted (last member left).")
+            return True, "success"
+
+    group.members.remove(current_member_record)
+    await db.commit()
+    logger.info(f"User: {current_user.username} left from group {group.name} successfully.")
+    return True, "success"
