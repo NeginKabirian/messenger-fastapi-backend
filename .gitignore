@@ -8,3 +8,15 @@ wheels/
 
 # Virtual environments
 .venv
+
+.env
+.env/
+
+# Logs
+*.log
+app.log
+
+# Ruff cache
+.ruff_cache/
+# Testing and Linting Caches
+.pytest_cache/
